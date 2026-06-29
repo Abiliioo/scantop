@@ -13,6 +13,42 @@ import {
   buildCompare, renderCompare,
 } from './render.js';
 
+// --- Migração de dados ecompulse → scantop ---
+
+function _migrateFromEcomPulse() {
+  if (!localStorage.getItem('ecompulse_accounts_v5')) return;
+  const direct = {
+    'ecompulse_net_eletrica_history_v3': S.hist,
+    'ecompulse_net_eletrica_active_v3':  S.snap,
+    'ecompulse_net_eletrica_tab_v3':     S.tab,
+    'ecompulse_screen_v4':               S.screen,
+    'ecompulse_theme':                   S.theme,
+    'ecompulse_favorites_v4':            S.fav,
+    'ecompulse_accounts_v5':             S.accounts,
+    'ecompulse_active_account_v5':       S.activeAccount,
+    'ecompulse_revenue_period_v5':       S.period,
+    'ecompulse_marketplace_v1':          S.marketplace,
+  };
+  Object.entries(direct).forEach(([old, neo]) => {
+    const v = localStorage.getItem(old);
+    if (v !== null && localStorage.getItem(neo) === null) localStorage.setItem(neo, v);
+  });
+  const prefixes = [
+    ['ecompulse_net_eletrica_history_v3_', S.hist + '_'],
+    ['ecompulse_favorites_v4_',            S.fav  + '_'],
+  ];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    prefixes.forEach(([oldPfx, newPfx]) => {
+      if (key && key.startsWith(oldPfx)) {
+        const neo = newPfx + key.slice(oldPfx.length);
+        const v = localStorage.getItem(key);
+        if (v !== null && localStorage.getItem(neo) === null) localStorage.setItem(neo, v);
+      }
+    });
+  }
+}
+
 // --- Orquestração ---
 
 function build() {
@@ -256,6 +292,7 @@ window._switchAccount = function (id) {
 // --- Init ---
 
 (function init() {
+  _migrateFromEcomPulse();
   ensureAccounts();
   renderAccountLabel();
   applyTheme(localStorage.getItem(S.theme) || 'dark');

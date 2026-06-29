@@ -33,16 +33,16 @@ export const MARKETPLACE_LABELS = {
 };
 
 export const S = {
-  hist: 'ecompulse_net_eletrica_history_v3',
-  snap: 'ecompulse_net_eletrica_active_v3',
-  tab: 'ecompulse_net_eletrica_tab_v3',
-  screen: 'ecompulse_screen_v4',
-  theme: 'ecompulse_theme',
-  fav: 'ecompulse_favorites_v4',
-  accounts: 'ecompulse_accounts_v5',
-  activeAccount: 'ecompulse_active_account_v5',
-  period:      'ecompulse_revenue_period_v5',
-  marketplace: 'ecompulse_marketplace_v1',
+  hist:          'scantop_history_v1',
+  snap:          'scantop_snap_v1',
+  tab:           'scantop_tab_v1',
+  screen:        'scantop_screen_v1',
+  theme:         'scantop_theme',
+  fav:           'scantop_favorites_v1',
+  accounts:      'scantop_accounts_v1',
+  activeAccount: 'scantop_active_account_v1',
+  period:        'scantop_period_v1',
+  marketplace:   'scantop_marketplace_v1',
 };
 
 export const RHYTHM_LIMIT = 15;

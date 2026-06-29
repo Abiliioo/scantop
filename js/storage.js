@@ -5,7 +5,7 @@ export function ensureAccounts() {
   try { list = JSON.parse(localStorage.getItem(S.accounts)) || []; }
   catch (e) { list = []; }
   if (!list.length) {
-    list = [{ id: 'net-eletrica', name: 'Net Elétrica' }];
+    list = [{ id: 'default', name: 'Minha loja' }];
     localStorage.setItem(S.accounts, JSON.stringify(list));
   }
   const activeId = localStorage.getItem(S.activeAccount);
@@ -24,7 +24,7 @@ export function accountName() { return account().name; }
 
 export function accountKey(base) {
   const id = account().id;
-  return id === 'net-eletrica' ? base : base + '_' + id;
+  return id === 'default' || id === 'net-eletrica' ? base : base + '_' + id;
 }
 
 export function hist() {
@@ -46,7 +46,7 @@ export function saveFavs(set) {
 }
 
 export function loadHistoryFor(id) {
-  const key = id === 'net-eletrica' ? S.hist : S.hist + '_' + id;
+  const key = (id === 'default' || id === 'net-eletrica') ? S.hist : S.hist + '_' + id;
   try { return JSON.parse(localStorage.getItem(key)) || []; }
   catch (e) { return []; }
 }
