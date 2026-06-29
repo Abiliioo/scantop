@@ -1,4 +1,4 @@
-import { S } from './config.js';
+import { S, MARKETPLACE_LABELS } from './config.js';
 import { state } from './state.js';
 import { toast } from './utils.js';
 import { ensureAccounts, hist, saveHist } from './storage.js';
@@ -18,6 +18,7 @@ import {
 function build() {
   document.getElementById('upload').style.display = 'none';
   document.getElementById('dash').style.display = 'block';
+  document.body.classList.toggle('meli-mode', state.marketplace === 'meli');
   localStorage.setItem(S.screen, 'dashboard');
   renderAccountLabel();
   renderKpis(state.products);
@@ -83,8 +84,25 @@ dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
 dz.addEventListener('drop', e => {
   e.preventDefault();
   dz.classList.remove('drag');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], build);
 });
+
+function _updateMkButtons() {
+  const mk = state.marketplace;
+  document.querySelectorAll('.mk-btn').forEach(b => b.classList.toggle('selected', b.dataset.mk === mk));
+  const badge = document.getElementById('mkBadge');
+  const clear = document.getElementById('mkClear');
+  if (!badge) return;
+  if (mk) {
+    badge.textContent = MARKETPLACE_LABELS[mk];
+    badge.className = 'mk-badge ' + mk;
+    badge.style.display = 'inline-flex';
+    clear.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+    clear.style.display = 'none';
+  }
+}
 
 // --- Exposição global (usada por onclick no HTML) ---
 
@@ -102,6 +120,7 @@ window._showHome = function () {
     document.getElementById('file').value = '';
     localStorage.setItem(S.screen, 'home');
     _setHeaderActive('home');
+    _updateMkButtons();
   }
 };
 
@@ -111,6 +130,19 @@ window._newUpload = function () {
   document.getElementById('file').value = '';
   localStorage.setItem(S.screen, 'upload');
   _setHeaderActive('upload');
+  _updateMkButtons();
+};
+
+window._selectMarketplace = function (mk) {
+  state.marketplace = mk;
+  localStorage.setItem(S.marketplace, mk);
+  _updateMkButtons();
+};
+
+window._clearMarketplace = function () {
+  state.marketplace = null;
+  localStorage.removeItem(S.marketplace);
+  _updateMkButtons();
 };
 
 window._showTab = (id) => showTab(id);
@@ -125,7 +157,7 @@ window._openCategories = function () {
   showTab('categorias');
 };
 
-window._handleFile = (f) => handleFile(f);
+window._handleFile = (f) => handleFile(f, build);
 window._setMap = (key, value) => { state.map[key] = value; };
 window._confirmMap = () => confirmMap(build);
 window._closeModal = () => document.getElementById('modal').classList.remove('open');
@@ -228,6 +260,8 @@ window._switchAccount = function (id) {
   renderAccountLabel();
   applyTheme(localStorage.getItem(S.theme) || 'dark');
   state.currentPeriod = Number(localStorage.getItem(S.period) || 30);
+  const savedMk = localStorage.getItem(S.marketplace);
+  if (savedMk) state.marketplace = savedMk;
   const h  = hist();
   const id = localStorage.getItem(S.snap);
   if (id && h.find(x => x.id === id) && localStorage.getItem(S.screen) !== 'home') {

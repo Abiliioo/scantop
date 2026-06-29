@@ -50,9 +50,38 @@
   <section class="upload" id="upload">
     <div class="upload-card">
       <h1>Análise da loja</h1>
-      <p>Importe CSV, XLSX ou XLS. O painel calcula receita, volume, ritmo, clips, imagens e prioridades de ação.</p>
+      <p>Importe o relatório do marketplace. O painel detecta colunas automaticamente e calcula receita, volume, ritmo, imagens e prioridades de ação.</p>
+
+      <!-- Passo 1: Marketplace -->
+      <div class="mk-picker">
+        <p class="mk-step-label">1. Selecione o marketplace</p>
+        <div class="mk-buttons">
+          <button class="mk-btn shopee" data-mk="shopee" onclick="window._selectMarketplace('shopee')">
+            <svg viewBox="0 0 48 48" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="24" fill="#ee4d2d"/>
+              <text x="24" y="32" text-anchor="middle" fill="#fff" font-size="24" font-weight="900" font-family="Arial,sans-serif">S</text>
+            </svg>
+            <span>Shopee</span>
+          </button>
+          <button class="mk-btn meli" data-mk="meli" onclick="window._selectMarketplace('meli')">
+            <svg viewBox="0 0 72 48" width="54" height="36" xmlns="http://www.w3.org/2000/svg">
+              <rect width="72" height="48" rx="8" fill="#ffe600"/>
+              <text x="36" y="34" text-anchor="middle" fill="#3483fa" font-size="22" font-weight="900" font-family="Arial,sans-serif">ML</text>
+            </svg>
+            <span>Mercado Livre</span>
+          </button>
+        </div>
+        <div class="mk-status">
+          <span class="mk-badge" id="mkBadge" style="display:none"></span>
+          <button class="mk-clear" id="mkClear" onclick="window._clearMarketplace()" style="display:none">✕ Alterar</button>
+        </div>
+      </div>
+
+      <!-- Passo 2: Arquivo -->
+      <p class="mk-step-label">2. Importe o arquivo</p>
       <div class="drop" id="drop" onclick="document.getElementById('file').click()">
-        <strong>Clique para selecionar</strong> ou arraste o arquivo aqui.
+        <strong>Clique para selecionar</strong> ou arraste o arquivo aqui.<br>
+        <small>CSV · XLSX · XLS</small>
       </div>
       <input id="file" type="file" accept=".csv,.xlsx,.xls" onchange="window._handleFile(this.files[0])">
     </div>
@@ -138,7 +167,7 @@
         <div class="scroll">
           <table><thead><tr>
             <th></th><th>Produto / ID</th><th class="rhythm">Ritmo</th>
-            <th>Receita</th><th>Unidade</th><th>Clips</th><th>Imagens</th><th>O que melhorar</th>
+            <th>Receita</th><th>Unidade</th><th class="col-clip">Clips</th><th>Imagens</th><th>O que melhorar</th>
           </tr></thead><tbody id="ritmoBody"></tbody></table>
         </div>
       </div>
@@ -152,7 +181,7 @@
         <div class="scroll">
           <table><thead><tr>
             <th>Categoria</th><th>Anúncios</th><th>Receita</th><th>Unidade</th>
-            <th>Crescentes</th><th>Estáveis</th><th>Em queda</th><th>Sem clips</th>
+            <th>Crescentes</th><th>Estáveis</th><th>Em queda</th><th class="col-clip">Sem clips</th>
           </tr></thead><tbody id="categoryBody"></tbody></table>
         </div>
       </div>
@@ -166,7 +195,7 @@
         <div class="scroll">
           <table><thead><tr>
             <th>#</th><th>Produto / ID</th><th>Faturamento</th><th>Unidade</th>
-            <th class="rhythm">Ritmo</th><th>Clips</th><th>Imagens</th><th>Ação</th>
+            <th class="rhythm">Ritmo</th><th class="col-clip">Clips</th><th>Imagens</th><th>Ação</th>
           </tr></thead><tbody id="categoryProductsBody"></tbody></table>
         </div>
       </div>
@@ -202,7 +231,7 @@
             <option value="avaliacoes">Avaliações</option>
           </select>
         </label>
-        <label class="field">Clips
+        <label class="field col-clip">Clips
           <select id="clipFilter" onchange="window._renderTodos()">
             <option value="all">Todos</option>
             <option value="with">Com clips</option>
@@ -215,7 +244,7 @@
         <div class="scroll">
           <table><thead><tr>
             <th></th><th>#</th><th>Produto / ID</th><th>Preço atual</th><th>Preço anterior</th>
-            <th>Receita</th><th>Unidade</th><th class="rhythm">Ritmo</th><th>Imagens</th><th>Clips</th>
+            <th>Receita</th><th>Unidade</th><th class="rhythm">Ritmo</th><th>Imagens</th><th class="col-clip">Clips</th>
           </tr></thead><tbody id="allBody"></tbody></table>
         </div>
       </div>
@@ -229,7 +258,7 @@
         <div class="scroll">
           <table><thead><tr>
             <th></th><th>Produto / ID</th><th>Receita</th><th>Unidade</th>
-            <th class="rhythm">Ritmo</th><th>Clips</th><th>Imagens</th><th>Desempenho</th>
+            <th class="rhythm">Ritmo</th><th class="col-clip">Clips</th><th>Imagens</th><th>Desempenho</th>
           </tr></thead><tbody id="favBody"></tbody></table>
         </div>
       </div>

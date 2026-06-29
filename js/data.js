@@ -1,8 +1,16 @@
-import { S } from './config.js';
+import { S, MARKETPLACE_MAPS, MARKETPLACE_LABELS } from './config.js';
 import { state } from './state.js';
 import { detect, num, parseTrend, pid, uid, esc, toast } from './utils.js';
 import { hist, saveHist } from './storage.js';
 import { inferCat } from './analytics.js';
+
+function applyMarketplaceMap(cols) {
+  const preset = MARKETPLACE_MAPS[state.marketplace];
+  if (!preset) return;
+  Object.entries(preset).forEach(([key, colName]) => {
+    state.map[key] = cols.includes(colName) ? colName : '';
+  });
+}
 
 export const defs = [
   ['name',    'Nome do produto',        1, ['nome','produto','title','titulo','título','item']],
@@ -40,7 +48,7 @@ export function normalizeProduct(p) {
   return p;
 }
 
-export function handleFile(f) {
+export function handleFile(f, onSuccess) {
   if (!f) return;
   state.fname = f.name;
   document.getElementById('loading').classList.add('open');
@@ -50,11 +58,11 @@ export function handleFile(f) {
     try {
       if (ext === 'csv') {
         const parsed = Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
-        openMap(parsed.data);
+        openMap(parsed.data, onSuccess);
       } else {
         const wb = XLSX.read(e.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        openMap(XLSX.utils.sheet_to_json(ws, { defval: '' }));
+        openMap(XLSX.utils.sheet_to_json(ws, { defval: '' }), onSuccess);
       }
     } catch (err) {
       document.getElementById('loading').classList.remove('open');
@@ -64,7 +72,7 @@ export function handleFile(f) {
   ext === 'csv' ? r.readAsText(f, 'UTF-8') : r.readAsArrayBuffer(f);
 }
 
-export function openMap(data) {
+export function openMap(data, onSuccess) {
   document.getElementById('loading').classList.remove('open');
   if (!data || !data.length) {
     toast('Nenhum dado encontrado no arquivo.', 'error');
@@ -73,6 +81,17 @@ export function openMap(data) {
   state.rows = data;
   const cols = Object.keys(data[0]);
   state.map = {};
+
+  if (state.marketplace) {
+    applyMarketplaceMap(cols);
+    if (state.map.name) {
+      toast('Colunas do ' + MARKETPLACE_LABELS[state.marketplace] + ' detectadas automaticamente.', 'success');
+      confirmMap(onSuccess);
+      return;
+    }
+    toast('Arquivo não corresponde ao formato do ' + MARKETPLACE_LABELS[state.marketplace] + '. Confira o mapeamento.', 'error');
+  }
+
   defs.forEach(d => { state.map[d[0]] = detect(cols, d[3]); });
   document.getElementById('map').innerHTML = defs.map(d =>
     `<label>${d[1]}${d[2] ? ' *' : ''}</label>` +
@@ -124,6 +143,7 @@ export function saveSnap() {
     id: uid(),
     fileName: state.fname,
     uploadedAt: Date.now(),
+    marketplace: state.marketplace || null,
     products: state.products,
     total: state.products.reduce((a, p) => a + (p.rev || 0), 0),
   };
@@ -138,6 +158,7 @@ export function openSnap(id, onSuccess) {
   if (!s) return;
   state.products = (s.products || []).map(normalizeProduct);
   state.current = s.id;
+  state.marketplace = s.marketplace || null;
   localStorage.setItem(S.snap, s.id);
   onSuccess();
 }

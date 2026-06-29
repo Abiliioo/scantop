@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { MARKETPLACE_LABELS } from './config.js';
 import {
   rhythm, hasClip, revOf, unitsOf, needsImages, actionItems,
   recommendation, productStatus, isFav, keyOf,
@@ -7,6 +8,8 @@ import {
 import { money, small, esc } from './utils.js';
 import { hist, accountName, loadHistoryFor, ensureAccounts, account } from './storage.js';
 import { normalizeProduct } from './data.js';
+
+function isMeli() { return state.marketplace === 'meli'; }
 
 // --- Helpers de HTML ---
 
@@ -58,24 +61,33 @@ export function periodButtons() {
 }
 
 export function renderKpis(products) {
-  const rev       = products.reduce((a, p) => a + revOf(p), 0);
-  const units     = products.reduce((a, p) => a + unitsOf(p), 0);
-  const clips     = products.filter(hasClip).length;
-  const noClips   = products.length - clips;
+  const rev        = products.reduce((a, p) => a + revOf(p), 0);
+  const units      = products.reduce((a, p) => a + unitsOf(p), 0);
+  const clips      = products.filter(hasClip).length;
+  const noClips    = products.length - clips;
   const needAction = actionItems(products).length;
-  const needImgs  = products.filter(needsImages).length;
-  const favCount  = products.filter(isFav).length;
-  const health    = catalogHealthScore(products);
+  const needImgs   = products.filter(needsImages).length;
+  const favCount   = products.filter(isFav).length;
+  const health     = catalogHealthScore(products);
+  const mk         = state.marketplace;
+  const mkLabel    = mk ? MARKETPLACE_LABELS[mk] : '';
 
   document.getElementById('sub').textContent =
-    accountName() + ' · ' + products.length + ' produtos · ' + new Date().toLocaleDateString('pt-BR');
+    accountName() + (mkLabel ? ' · ' + mkLabel : '') + ' · ' + products.length + ' produtos · ' + new Date().toLocaleDateString('pt-BR');
+
+  const clipPills = isMeli() ? '' :
+    `<button class="pill btn-pill col-clip" onclick="window._filterClips('with')"><strong>${clips}</strong> com clips</button>` +
+    `<button class="pill btn-pill col-clip" onclick="window._filterClips('without')"><strong>${noClips}</strong> sem clips</button>`;
+
+  const healthTitle = isMeli()
+    ? 'Score de saúde: imagens e ritmo'
+    : 'Score de saúde: clips, imagens e ritmo';
 
   document.getElementById('statusRow').innerHTML =
-    periodButtons() +
-    `<button class="pill btn-pill" onclick="window._filterClips('with')"><strong>${clips}</strong> com clips</button>` +
-    `<button class="pill btn-pill" onclick="window._filterClips('without')"><strong>${noClips}</strong> sem clips</button>` +
+    (mk ? `<span class="pill mk-pill ${mk}"><strong>${mkLabel}</strong></span>` : '') +
+    periodButtons() + clipPills +
     `<span class="pill"><strong>${favCount}</strong> favoritos</span>` +
-    `<span class="pill health-pill" title="Score de saúde: clips, imagens e ritmo"><strong>${health}</strong>/100 saúde</span>`;
+    `<span class="pill health-pill" title="${healthTitle}"><strong>${health}</strong>/100 saúde</span>`;
 
   document.getElementById('kpis').innerHTML =
     kpiCard('Receita ' + periodLabel(),  money(rev),                    products.length + ' produtos analisados',      'bar')     +
@@ -98,16 +110,17 @@ function kpiCard(label, value, sub, icon) {
 // --- Plano de ação ---
 
 export function renderActionPlan(products) {
-  const nImgs  = products.filter(needsImages).length;
-  const nClip  = products.filter(p => !hasClip(p)).length;
-  const nDown  = products.filter(p => rhythm(p.trend).cls === 'down').length;
-  const total  = actionItems(products).length;
+  const nImgs = products.filter(needsImages).length;
+  const nClip = products.filter(p => !hasClip(p)).length;
+  const nDown = products.filter(p => rhythm(p.trend).cls === 'down').length;
+  const total = actionItems(products).length;
   document.getElementById('actionPlanCount').textContent = total + ' itens para ajustar';
-  document.getElementById('actionPlan').innerHTML = [
-    { label: 'Imagens insuficientes', sub: 'Menos de 7 imagens no anúncio',    n: nImgs },
-    { label: 'Sem clips',             sub: 'Ativar clip para testar conversão', n: nClip },
-    { label: 'Em queda',              sub: 'Revisar preço, título e oferta',    n: nDown },
-  ].map(x =>
+  const items = [
+    { label: 'Imagens insuficientes', sub: 'Menos de 7 imagens no anúncio',    n: nImgs, clip: false },
+    { label: 'Sem clips',             sub: 'Ativar clip para testar conversão', n: nClip, clip: true  },
+    { label: 'Em queda',              sub: 'Revisar preço, título e oferta',    n: nDown, clip: false },
+  ].filter(x => !x.clip || !isMeli());
+  document.getElementById('actionPlan').innerHTML = items.map(x =>
     `<div class="action-item"><div><b>${x.label}</b><span>${x.sub}</span></div><div class="action-num">${x.n}</div></div>`
   ).join('');
 }
@@ -118,23 +131,39 @@ export function renderInsightsOverview(products) {
   const el = document.getElementById('overviewInsights');
   if (!el) return;
   const pareto = paretoInfo(products);
-  const lift   = clipLift(products);
   const health = catalogHealthScore(products);
   const healthLabel = health >= 75 ? 'Catálogo saudável' : health >= 50 ? 'Catálogo com pontos a melhorar' : 'Catálogo precisa de atenção';
+
+  const middleCard = isMeli() ? (() => {
+    const noImgs = products.filter(needsImages).length;
+    const pct = products.length ? Math.round((noImgs / products.length) * 100) : 0;
+    return `<div class="card insight">
+      <b>Qualidade visual</b>
+      <p>${noImgs} anúncio${noImgs !== 1 ? 's' : ''} (${pct}% do catálogo) com menos de 7 imagens.
+        ${pct > 30 ? '<b class="down">Prioridade alta de melhoria.</b>' : '<b class="up">Boa cobertura visual!</b>'}</p>
+    </div>`;
+  })() : (() => {
+    const lift = clipLift(products);
+    return `<div class="card insight">
+      <b>Impacto do clip</b>
+      <p>Com clip: ${money(lift.avgWith)} médio. Sem clip: ${money(lift.avgNo)} médio.
+        ${lift.lift > 0 ? `<b class="up">+${lift.lift.toFixed(0)}% de diferença</b>` : `<b class="down">${lift.lift.toFixed(0)}%</b>`}.</p>
+    </div>`;
+  })();
+
+  const healthDesc = isMeli()
+    ? `Score ${health}/100 — ponderado por imagens (50%), crescimento (25%) e ausência de queda (25%).`
+    : `Score ${health}/100 — ponderado por clips ativos (35%), imagens (30%), crescimento (20%) e ausência de queda (15%).`;
 
   el.innerHTML =
     `<div class="card insight">
       <b>Concentração 80/20</b>
       <p>${pareto.count} produto${pareto.count !== 1 ? 's' : ''} (${pareto.pct}% do catálogo) geram 80% da receita.</p>
-    </div>
-    <div class="card insight">
-      <b>Impacto do clip</b>
-      <p>Com clip: ${money(lift.avgWith)} médio. Sem clip: ${money(lift.avgNo)} médio.
-        ${lift.lift > 0 ? `<b class="up">+${lift.lift.toFixed(0)}% de diferença</b>` : `<b class="down">${lift.lift.toFixed(0)}%</b>`}.</p>
-    </div>
-    <div class="card insight">
+    </div>` +
+    middleCard +
+    `<div class="card insight">
       <b>${healthLabel}</b>
-      <p>Score ${health}/100 — ponderado por clips ativos (35%), imagens (30%), crescimento (20%) e ausência de queda (15%).</p>
+      <p>${healthDesc}</p>
     </div>`;
 }
 
@@ -185,6 +214,7 @@ export function renderTodos(products) {
     sort === 'avaliacoes'? b.reviews - a.reviews  :
     revOf(b) - revOf(a)
   );
+  const allColSpan = isMeli() ? 9 : 10;
   document.getElementById('allCount').textContent = list.length + ' produtos';
   document.getElementById('allBody').innerHTML = list.map((p, i) =>
     `<tr>
@@ -193,9 +223,9 @@ export function renderTodos(products) {
       <td>${money(revOf(p))}</td><td>${small(unitsOf(p))}</td>
       <td class="rhythm">${rhythmHtml(p)}</td>
       <td>${p.images ? Math.round(p.images) : '-'}</td>
-      <td>${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>
+      ${isMeli() ? '' : `<td class="col-clip">${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>`}
     </tr>`
-  ).join('') || '<tr><td colspan="10" class="empty">Nenhum produto encontrado</td></tr>';
+  ).join('') || `<tr><td colspan="${allColSpan}" class="empty">Nenhum produto encontrado</td></tr>`;
 }
 
 // --- Aba Ritmo ---
@@ -216,7 +246,7 @@ export function renderRitmo(products) {
     kpi('up',     'Crescente',  cres.length,    'anúncios para escalar') +
     kpi('flat',   'Estável',    est.length,     'testar novas ofertas') +
     kpi('down',   'Queda',      queda.length,   money(risk) + ' em atenção') +
-    kpi('noclip', 'Sem clips',  semClip.length, 'prioridade de mídia');
+    (isMeli() ? '' : kpi('noclip', 'Sem clips', semClip.length, 'prioridade de mídia'));
 
   document.getElementById('ritmoInsights').innerHTML =
     `<div class="card insight"><b>Escalar</b><p>Produtos crescentes devem receber estoque, campanha e proteção de preço.</p></div>` +
@@ -228,17 +258,19 @@ export function renderRitmo(products) {
   document.getElementById('ritmoSortBtn').innerHTML = asc
     ? '<svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>Menor faturamento'
     : '<svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>Maior faturamento';
+  const clipCol = isMeli() ? '' : '<td class="col-clip">{clip}</td>';
+  const colSpan = isMeli() ? 7 : 8;
   document.getElementById('ritmoCount').textContent = list.length + ' anúncios filtrados';
   document.getElementById('ritmoBody').innerHTML = list.map(p =>
     `<tr>
       <td>${starBtn(p)}</td><td>${pcell(p)}</td>
       <td class="rhythm">${rhythmHtml(p)}</td>
       <td>${money(revOf(p))}</td><td>${small(unitsOf(p))}</td>
-      <td>${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>
+      ${clipCol.replace('{clip}', hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>')}
       <td>${p.images ? Math.round(p.images) : '-'}</td>
       <td>${recommendation(p)}</td>
     </tr>`
-  ).join('') || '<tr><td colspan="8" class="empty">Nenhum anúncio neste filtro</td></tr>';
+  ).join('') || `<tr><td colspan="${colSpan}" class="empty">Nenhum anúncio neste filtro</td></tr>`;
 }
 
 function _ritmoList(products) {
@@ -290,14 +322,15 @@ export function renderCategories(products) {
     const enc = encodeURIComponent(r.cat);
     return `<div class="card category-card ${r.cat === state.selectedCategory ? 'active' : ''}" onclick="window._selectCategory(decodeURIComponent('${enc}'))">
       <b>${esc(r.cat)}</b>
-      <div class="meta"><span>${r.list.length} anúncios</span><span>${money(r.rev)}</span><span>${r.cres} crescendo</span><span>${r.sem} sem clips</span></div>
+      <div class="meta"><span>${r.list.length} anúncios</span><span>${money(r.rev)}</span><span>${r.cres} crescendo</span>${isMeli() ? '' : `<span class="col-clip">${r.sem} sem clips</span>`}</div>
     </div>`;
   }).join('');
   document.getElementById('categoryBody').innerHTML = rows.map(r => {
     const enc = encodeURIComponent(r.cat);
     return `<tr class="category-row ${r.cat === state.selectedCategory ? 'active' : ''}" onclick="window._selectCategory(decodeURIComponent('${enc}'))">
       <td><b>${esc(r.cat)}</b></td><td>${r.list.length}</td><td>${money(r.rev)}</td><td>${small(r.units)}</td>
-      <td class="up">${r.cres}</td><td class="flat">${r.est}</td><td class="down">${r.queda}</td><td>${r.sem}</td>
+      <td class="up">${r.cres}</td><td class="flat">${r.est}</td><td class="down">${r.queda}</td>
+      ${isMeli() ? '' : `<td class="col-clip">${r.sem}</td>`}
     </tr>`;
   }).join('');
   _renderCategoryProducts(products);
@@ -313,46 +346,51 @@ function _renderCategoryProducts(products) {
   );
   document.getElementById('selectedCategoryTitle').textContent = 'Anúncios · ' + row.cat;
   document.getElementById('selectedCategoryMeta').textContent =
-    row.list.length + ' anúncios · ' + money(row.rev) + ' gerados · ' + row.sem + ' sem clips';
+    row.list.length + ' anúncios · ' + money(row.rev) + ' gerados' +
+    (isMeli() ? '' : ' · ' + row.sem + ' sem clips');
   document.getElementById('categorySortBtn').innerHTML = state.categorySortDesc
     ? '<svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>Maior faturamento'
     : '<svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>Menor faturamento';
+  const catProdColSpan = isMeli() ? 7 : 8;
   document.getElementById('categoryProductsBody').innerHTML = list.map((p, i) =>
     `<tr>
       <td><span class="rank-icon">${i + 1}</span></td><td>${pcell(p)}</td>
       <td><b>${money(revOf(p))}</b></td><td>${small(unitsOf(p))}</td>
       <td class="rhythm">${rhythmHtml(p)}</td>
-      <td>${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>
+      ${isMeli() ? '' : `<td class="col-clip">${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>`}
       <td>${p.images ? Math.round(p.images) : '-'}</td>
       <td>${recommendation(p)}</td>
     </tr>`
-  ).join('') || '<tr><td colspan="8" class="empty">Nenhum anúncio nesta categoria</td></tr>';
+  ).join('') || `<tr><td colspan="${catProdColSpan}" class="empty">Nenhum anúncio nesta categoria</td></tr>`;
 }
 
 // --- Aba Favoritos ---
 
 export function renderFavorites(products) {
-  const list   = products.filter(isFav);
-  const rev    = list.reduce((a, p) => a + revOf(p), 0);
-  const units  = list.reduce((a, p) => a + unitsOf(p), 0);
+  const list    = products.filter(isFav);
+  const rev     = list.reduce((a, p) => a + revOf(p), 0);
+  const units   = list.reduce((a, p) => a + unitsOf(p), 0);
   const growing = list.filter(p => rhythm(p.trend).cls === 'up').length;
-  const clips  = list.filter(hasClip).length;
+  const clips   = list.filter(hasClip).length;
+  const clipKpi = isMeli() ? '' :
+    `<div class="card kpi col-clip"><small>Clips</small><strong>${clips} / ${list.length - clips}</strong><span>com clips / sem clips</span></div>`;
   document.getElementById('favKpis').innerHTML =
     `<div class="card kpi"><small>Favoritos</small><strong>${list.length}</strong><span>anúncios salvos</span></div>` +
     `<div class="card kpi"><small>Receita favorita</small><strong>${money(rev)}</strong><span>${small(units)} unidades</span></div>` +
     `<div class="card kpi"><small>Crescentes</small><strong>${growing}</strong><span>favoritos em alta</span></div>` +
-    `<div class="card kpi"><small>Clips</small><strong>${clips} / ${list.length - clips}</strong><span>com clips / sem clips</span></div>`;
+    clipKpi;
+  const favColSpan = isMeli() ? 7 : 8;
   document.getElementById('favCount').textContent = list.length + ' anúncios';
   document.getElementById('favBody').innerHTML = list.map(p =>
     `<tr>
       <td>${starBtn(p)}</td><td>${pcell(p)}</td>
       <td>${money(revOf(p))}</td><td>${small(unitsOf(p))}</td>
       <td class="rhythm">${rhythmHtml(p)}</td>
-      <td>${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>
+      ${isMeli() ? '' : `<td class="col-clip">${hasClip(p) ? '<span class="badge green">Sim</span>' : '<span class="badge amber">Não</span>'}</td>`}
       <td>${p.images ? Math.round(p.images) : '-'}</td>
       <td>${recommendation(p)}</td>
     </tr>`
-  ).join('') || '<tr><td colspan="8" class="empty">Nenhum anúncio favoritado ainda. Use a estrela nas tabelas para salvar.</td></tr>';
+  ).join('') || `<tr><td colspan="${favColSpan}" class="empty">Nenhum anúncio favoritado ainda. Use a estrela nas tabelas para salvar.</td></tr>`;
 }
 
 // --- Aba Comparação ---

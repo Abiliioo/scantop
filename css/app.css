@@ -217,8 +217,41 @@ tr:hover td { background: color-mix(in srgb, var(--blue) 5%, transparent); }
   max-width: 320px;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
-.toast.toast-error { border-color: var(--red);   color: var(--red);   }
-.toast.toast-info  { border-color: var(--blue);  color: var(--blue);  }
+.toast.toast-error   { border-color: var(--red);   color: var(--red);   }
+.toast.toast-info    { border-color: var(--blue);  color: var(--blue);  }
+.toast.toast-success { border-color: var(--green); color: var(--green); }
+
+/* ── Seletor de marketplace ── */
+.mk-picker    { margin-bottom: 22px; }
+.mk-step-label { margin: 0 0 10px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.mk-buttons   { display: flex; gap: 12px; }
+.mk-btn {
+  flex: 1; padding: 18px 12px; border-radius: 12px; border: 2px solid var(--line2);
+  background: var(--card2); cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; transition: border-color .15s, background .15s, transform .15s;
+}
+.mk-btn:hover          { transform: translateY(-2px); }
+.mk-btn span           { font-weight: 700; font-size: 13px; }
+.mk-btn.shopee:hover,
+.mk-btn.shopee.selected { border-color: #ee4d2d; background: rgba(238,77,45,.08); }
+.mk-btn.meli:hover,
+.mk-btn.meli.selected   { border-color: #e8a000; background: rgba(255,230,0,.10); }
+.mk-status { display: flex; align-items: center; gap: 10px; margin-top: 12px; min-height: 28px; }
+.mk-badge  { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.mk-badge.shopee { background: rgba(238,77,45,.12);  color: #ee4d2d; }
+.mk-badge.meli   { background: rgba(232,160,0,.15);  color: #c07800; }
+html[data-theme=dark] .mk-badge.meli { color: #fdb022; background: rgba(253,176,34,.14); }
+.mk-clear  { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 6px; }
+.mk-clear:hover { color: var(--text); background: var(--card2); }
+
+/* Badge de marketplace no dashboard */
+.mk-pill         { font-weight: 700; }
+.mk-pill.shopee  { border-color: rgba(238,77,45,.5); color: #ee4d2d; background: rgba(238,77,45,.08); }
+.mk-pill.meli    { border-color: rgba(232,160,0,.5); color: #c07800; background: rgba(255,230,0,.10); }
+html[data-theme=dark] .mk-pill.meli { color: #fdb022; background: rgba(253,176,34,.10); }
+
+/* Modo MELI — oculta tudo ligado a clips */
+body.meli-mode .col-clip { display: none; }
 
 /* ── Responsivo ── */
 @media (max-width: 980px) {

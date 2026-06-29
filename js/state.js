@@ -10,4 +10,6 @@ export const state = {
   categorySortDesc: true,
   ritmoFilter: 'all',
   ritmoSortDesc: true,
+  marketplace: null,        // 'shopee' | 'meli' | null
+  _pendingOnSuccess: null,  // callback usado quando modal é fechado via confirmMap
 };

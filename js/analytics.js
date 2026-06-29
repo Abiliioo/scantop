@@ -21,6 +21,7 @@ export function rhythm(t) {
 }
 
 export function hasClip(p) {
+  if (state.marketplace === 'meli') return false;
   const raw = String(p.clip || '').trim();
   if (!raw) return false;
   const v = clean(raw);
@@ -59,12 +60,13 @@ export function unitsOf(p) {
 export function needsImages(p) { return (p.images || 0) < MIN_IMAGES; }
 
 export function actionItems(products) {
-  return products.filter(p => needsImages(p) || !hasClip(p) || rhythm(p.trend).cls === 'down');
+  const meli = state.marketplace === 'meli';
+  return products.filter(p => needsImages(p) || (!meli && !hasClip(p)) || rhythm(p.trend).cls === 'down');
 }
 
 export function recommendation(p) {
   const r = rhythm(p.trend).cls;
-  if (!hasClip(p)) return 'Adicionar clip para elevar conversão';
+  if (state.marketplace !== 'meli' && !hasClip(p)) return 'Adicionar clip para elevar conversão';
   if (needsImages(p)) return 'Adicionar imagens: mínimo recomendado é 7';
   if (r === 'down') return 'Revisar preço, título e oferta';
   if (r === 'up') return 'Escalar estoque e campanha';
@@ -104,10 +106,13 @@ export function toggleFavKey(key) {
 
 export function catalogHealthScore(products) {
   if (!products.length) return 0;
-  const withClip    = products.filter(hasClip).length / products.length;
-  const withImages  = products.filter(p => !needsImages(p)).length / products.length;
-  const growing     = products.filter(p => rhythm(p.trend).cls === 'up').length / products.length;
-  const notFalling  = products.filter(p => rhythm(p.trend).cls !== 'down').length / products.length;
+  const withImages = products.filter(p => !needsImages(p)).length / products.length;
+  const growing    = products.filter(p => rhythm(p.trend).cls === 'up').length / products.length;
+  const notFalling = products.filter(p => rhythm(p.trend).cls !== 'down').length / products.length;
+  if (state.marketplace === 'meli') {
+    return Math.round(withImages * 50 + growing * 25 + notFalling * 25);
+  }
+  const withClip = products.filter(hasClip).length / products.length;
   return Math.round(withClip * 35 + withImages * 30 + growing * 20 + notFalling * 15);
 }
 
