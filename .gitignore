@@ -1,0 +1,12 @@
+# Sample data files — may contain real business data; do not commit
+*.xlsx
+*.xls
+*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
