@@ -1,0 +1,10 @@
+{
+  "name": "EcomPulse",
+  "short_name": "EcomPulse",
+  "description": "Dashboard de análise para vendedores de e-commerce",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080d16",
+  "theme_color": "#2563eb",
+  "icons": []
+}

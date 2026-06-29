@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcomPulse</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+
+<header>
+  <button class="brand account-trigger" onclick="window._openAccountModal()" title="Adicionar ou trocar conta">
+    <div class="mark">E</div>
+    <div><b>EcomPulse</b><span id="accountLabel">Net Elétrica · clique para contas</span></div>
+  </button>
+  <div class="nav">
+    <button class="btn" id="homeBtn" onclick="window._showHome()">
+      <svg class="ico" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+      Home
+    </button>
+    <button class="btn" id="favHeaderBtn" onclick="window._openFavorites()">
+      <svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 15 8.5 22 9.3 16.8 13.9 18.2 21 12 17.3 5.8 21 7.2 13.9 2 9.3 9 8.5 12 2"/></svg>
+      Favoritos
+    </button>
+    <button class="btn" id="catHeaderBtn" onclick="window._openCategories()">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>
+      Categorias
+    </button>
+  </div>
+  <div class="actions">
+    <button class="btn icon" id="themeBtn" onclick="window._toggleTheme()" title="Alternar tema">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 7.5A9 9 0 1 1 12 3Z"/></svg>
+    </button>
+    <button class="btn primary" onclick="window._newUpload()">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+      Novo arquivo
+    </button>
+  </div>
+</header>
+
+<div class="loading" id="loading">Analisando arquivo...</div>
+
+<main>
+  <!-- Tela de upload -->
+  <section class="upload" id="upload">
+    <div class="upload-card">
+      <h1>Análise da loja</h1>
+      <p>Importe CSV, XLSX ou XLS. O painel calcula receita, volume, ritmo, clips, imagens e prioridades de ação.</p>
+      <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+        <strong>Clique para selecionar</strong> ou arraste o arquivo aqui.
+      </div>
+      <input id="file" type="file" accept=".csv,.xlsx,.xls" onchange="window._handleFile(this.files[0])">
+    </div>
+  </section>
+
+  <!-- Dashboard -->
+  <section class="dashboard" id="dash">
+    <div class="top">
+      <div class="title"><h1>Painel de desempenho</h1><p id="sub"></p></div>
+      <div class="status-row" id="statusRow"></div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <!-- Abas -->
+    <div class="tabs">
+      <button class="tab active" data-tab="overview" onclick="window._showTab('overview')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M13 16V6"/><path d="M18 16v-4"/></svg>Visão geral
+      </button>
+      <button class="tab" data-tab="ritmo" onclick="window._showTab('ritmo')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Ritmo
+      </button>
+      <button class="tab" data-tab="categorias" onclick="window._showTab('categorias')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>Categorias
+      </button>
+      <button class="tab" data-tab="ranking" onclick="window._showTab('ranking')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M5 5H3v3a4 4 0 0 0 4 4"/><path d="M19 5h2v3a4 4 0 0 1-4 4"/></svg>Ranking
+      </button>
+      <button class="tab" data-tab="todos" onclick="window._showTab('todos')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>Todos os produtos
+      </button>
+      <button class="tab" data-tab="favorites" onclick="window._showTab('favorites')">
+        <svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 15 8.5 22 9.3 16.8 13.9 18.2 21 12 17.3 5.8 21 7.2 13.9 2 9.3 9 8.5 12 2"/></svg>Favoritos
+      </button>
+      <button class="tab" data-tab="compare" onclick="window._showTab('compare')">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><path d="M9 4v4"/><path d="M15 10v4"/><path d="M11 16v4"/></svg>Comparação
+      </button>
+    </div>
+
+    <!-- Aba: Visão geral -->
+    <div class="pane active" id="overview">
+      <div class="grid">
+        <div class="card chart">
+          <div class="chart-head"><b>Receita por categoria</b><span>principais categorias</span></div>
+          <div class="wrap"><canvas id="catChart"></canvas></div>
+        </div>
+        <div class="card chart">
+          <div class="chart-head"><b>Plano de ação</b><span id="actionPlanCount">itens para ajustar</span></div>
+          <div id="actionPlan" class="action-plan"></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card chart">
+          <div class="chart-head"><b>Top produtos por receita</b><span id="topPeriodLabel">período atual</span></div>
+          <div class="wrap tall"><canvas id="topChart"></canvas></div>
+        </div>
+        <div class="card chart">
+          <div class="chart-head"><b>Prioridade de melhoria</b><span>prioridade operacional</span></div>
+          <div class="wrap tall"><canvas id="priorityChart"></canvas></div>
+        </div>
+      </div>
+      <!-- Novas análises -->
+      <div class="insights" id="overviewInsights"></div>
+    </div>
+
+    <!-- Aba: Ritmo -->
+    <div class="pane" id="ritmo">
+      <div class="kpis" id="ritmoKpis"></div>
+      <div class="grid" style="margin-bottom:14px">
+        <div class="insights" id="ritmoInsights" style="display:grid;grid-template-columns:1fr;gap:12px;margin:0"></div>
+        <div class="card chart">
+          <div class="chart-head"><b>Distribuição de ritmo</b><span>% por categoria</span></div>
+          <div class="wrap"><canvas id="rhythmDonutChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card table-card">
+        <div class="category-toolbar">
+          <div><b>Ritmo dos anúncios</b><div class="mini-muted" id="ritmoCount"></div></div>
+          <button class="sort-btn" id="ritmoSortBtn" onclick="window._toggleRitmoSort()">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>Maior faturamento
+          </button>
+        </div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th></th><th>Produto / ID</th><th class="rhythm">Ritmo</th>
+            <th>Receita</th><th>Unidade</th><th>Clips</th><th>Imagens</th><th>O que melhorar</th>
+          </tr></thead><tbody id="ritmoBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Categorias -->
+    <div class="pane" id="categorias">
+      <div class="category-grid" id="categoryCards"></div>
+      <div class="card table-card">
+        <div class="table-head"><b>Categorias e anúncios</b><span id="categoryCount"></span></div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th>Categoria</th><th>Anúncios</th><th>Receita</th><th>Unidade</th>
+            <th>Crescentes</th><th>Estáveis</th><th>Em queda</th><th>Sem clips</th>
+          </tr></thead><tbody id="categoryBody"></tbody></table>
+        </div>
+      </div>
+      <div class="card table-card" style="margin-top:14px">
+        <div class="category-toolbar">
+          <div><b id="selectedCategoryTitle">Anúncios da categoria</b><div class="mini-muted" id="selectedCategoryMeta"></div></div>
+          <button class="sort-btn" id="categorySortBtn" onclick="window._toggleCategorySort()">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>Maior faturamento
+          </button>
+        </div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th>#</th><th>Produto / ID</th><th>Faturamento</th><th>Unidade</th>
+            <th class="rhythm">Ritmo</th><th>Clips</th><th>Imagens</th><th>Ação</th>
+          </tr></thead><tbody id="categoryProductsBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Ranking -->
+    <div class="pane" id="ranking">
+      <div class="filters">
+        <label class="field">Buscar <input id="searchRank" oninput="window._renderRanking()" placeholder="produto ou ID"></label>
+        <label class="field">Categoria <select id="catFilter" onchange="window._renderRanking()"></select></label>
+      </div>
+      <div class="card table-card">
+        <div class="table-head"><b>Produtos por receita</b><span id="rankCount"></span></div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th></th><th>#</th><th>Produto / ID</th><th>Categoria</th><th>Preço</th>
+            <th>Receita</th><th>Unidade</th><th class="rhythm">Ritmo</th><th>Nota</th><th>Status</th>
+          </tr></thead><tbody id="rankBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Todos -->
+    <div class="pane" id="todos">
+      <div class="filters">
+        <label class="field">Buscar <input id="searchAll" oninput="window._renderTodos()" placeholder="produto ou ID"></label>
+        <label class="field">Ordenar
+          <select id="sortAll" onchange="window._renderTodos()">
+            <option value="receita">Receita</option>
+            <option value="ritmo">Ritmo</option>
+            <option value="preco">Preço</option>
+            <option value="imagens">Imagens</option>
+            <option value="avaliacoes">Avaliações</option>
+          </select>
+        </label>
+        <label class="field">Clips
+          <select id="clipFilter" onchange="window._renderTodos()">
+            <option value="all">Todos</option>
+            <option value="with">Com clips</option>
+            <option value="without">Sem clips</option>
+          </select>
+        </label>
+      </div>
+      <div class="card table-card">
+        <div class="table-head"><b>Catálogo completo</b><span id="allCount"></span></div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th></th><th>#</th><th>Produto / ID</th><th>Preço atual</th><th>Preço anterior</th>
+            <th>Receita</th><th>Unidade</th><th class="rhythm">Ritmo</th><th>Imagens</th><th>Clips</th>
+          </tr></thead><tbody id="allBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Favoritos -->
+    <div class="pane" id="favorites">
+      <div class="kpis" id="favKpis"></div>
+      <div class="card table-card">
+        <div class="table-head"><b>Anúncios favoritos</b><span id="favCount"></span></div>
+        <div class="scroll">
+          <table><thead><tr>
+            <th></th><th>Produto / ID</th><th>Receita</th><th>Unidade</th>
+            <th class="rhythm">Ritmo</th><th>Clips</th><th>Imagens</th><th>Desempenho</th>
+          </tr></thead><tbody id="favBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba: Comparação -->
+    <div class="pane" id="compare">
+      <div class="compare-tools">
+        <select id="cmpA" onchange="window._renderCompare()"></select>
+        <span style="color:var(--muted);text-align:center">vs</span>
+        <select id="cmpB" onchange="window._renderCompare()"></select>
+        <button class="btn danger" onclick="window._deleteReport()">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Excluir relatório
+        </button>
+      </div>
+      <div id="cmpEmpty" class="empty">Salve pelo menos dois uploads para comparar períodos.</div>
+      <div id="cmpContent" style="display:none">
+        <div class="kpis" id="cmpKpis"></div>
+        <div class="card table-card">
+          <div class="table-head"><b>Variações por produto</b><span id="cmpCount"></span></div>
+          <div class="scroll">
+            <table><thead><tr>
+              <th>Produto / ID</th><th>Preço anterior</th><th>Preço atual</th>
+              <th>Receita A</th><th>Receita B</th><th>Variação</th><th class="rhythm">Ritmo</th>
+            </tr></thead><tbody id="cmpBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal: Contas -->
+<div class="modal" id="accountModal">
+  <div class="box">
+    <div class="box-head">
+      <b>Contas e relatórios</b>
+      <div style="color:var(--muted);margin-top:4px">Crie uma conta para importar relatórios de outra loja sem perder os dados atuais.</div>
+    </div>
+    <div class="box-body">
+      <div class="account-list" id="accountList"></div>
+      <div class="account-form">
+        <input id="newAccountName" placeholder="Nome da nova conta">
+        <button class="btn primary" onclick="window._createAccount()">Adicionar conta</button>
+      </div>
+    </div>
+    <div class="box-foot">
+      <button class="btn" onclick="window._closeAccountModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Mapeamento de colunas -->
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="box-head">
+      <b>Confirmar colunas</b>
+      <div style="color:var(--muted);margin-top:4px">Ajuste os campos usados na análise.</div>
+    </div>
+    <div class="box-body"><div class="map" id="map"></div></div>
+    <div class="box-foot">
+      <button class="btn" onclick="window._closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="window._confirmMap()">Gerar painel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
